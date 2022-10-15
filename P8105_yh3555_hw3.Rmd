@@ -1,0 +1,64 @@
+---
+title: "p8105_yh3555_hw3"
+author: "Yuchen Hua"
+date: "2022-10-14"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggridges)
+library(patchwork)
+library(dplyr)
+library(readxl)
+library(p8105.datasets)
+```
+
+## Problem 2
+#### Import data and clean dataset
+```{r}
+accel = read_csv("./data/accel_data.csv")
+accel
+```
+
+```{r}
+accel = read_csv("./data/accel_data.csv")%>%
+   janitor::clean_names()%>%
+  pivot_longer(activity_1 : activity_1440,
+               names_to = "minutes_from_midnight",
+               names_prefix = "activity.",
+               values_to = "activity") %>%
+  mutate(minutes_from_midnight = as.numeric(minutes_from_midnight)) %>%
+  mutate(weekend_vs_weekdays = ifelse(day == c("Sunday", "Saturday"), "weekend", "weekday"))
+accel
+```
+ 
+
+```{r}
+accel = read_csv("./data/accel_data.csv")%>%
+   janitor::clean_names()%>%
+  pivot_longer(activity_1 : activity_1440,
+               names_to = "minutes_from_midnight",
+               names_prefix = "activity.",
+               values_to = "activity") %>%
+  mutate(minutes_from_midnight = as.numeric(minutes_from_midnight)) %>%
+  group_by(week, day)%>%
+  summarize(total = sum(activity))%>%
+  group_by(week, day, total)
+accel
+```
+
+```{r}
+accel = read_csv("./data/accel_data.csv")%>%
+   janitor::clean_names()%>%
+  pivot_longer(activity_1 : activity_1440,
+               names_to = "minutes_from_midnight",
+               names_prefix = "activity.",
+               values_to = "activity") %>%
+  mutate(minutes_from_midnight = as.numeric(minutes_from_midnight)) %>%
+  ggplot(aes(x = minutes_from_midnight, y = activity, color= day)) + geom_point() + geom_line() + labs(x = "minutes from midnight")
+```
+
+
