@@ -15,7 +15,60 @@ library(dplyr)
 library(readxl)
 library(p8105.datasets)
 ```
+### Problem 1 (solution)
 
+#### Read in the data
+
+```{r}
+data("instacart")
+
+instacart = 
+  instacart %>% 
+  as_tibble(instacart)
+instacart
+```
+There are 1384617 rows and 15 columns. 
+
+## Plot 
+```{r}
+instacart %>% 
+  count(aisle) %>% 
+  arrange(desc(n))
+```
+
+```{r}
+instacart %>% 
+  count(aisle) %>% 
+  filter(n > 10000) %>% 
+  mutate(aisle = fct_reorder(aisle, n)) %>% 
+  ggplot(aes(x = aisle, y = n)) + 
+  geom_point() + 
+  labs(title = "Number of items ordered in each aisle") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+```
+According to the plot, the most popular goods are fresh vegetables, fresh fruits and packaged vegetables fruits. 
+#### Table of three most popular items
+```{r}
+instacart %>% 
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>%
+  group_by(aisle) %>% 
+  count(product_name) %>% 
+  mutate(rank = min_rank(desc(n))) %>% 
+  filter(rank < 4) %>% 
+  arrange(desc(n)) %>%
+  knitr::kable()
+```
+The table has shown the most three popular items in each of the aisles. The number of times each item is ordered was shown.  
+#### Tables of Pink Lady Apples and Coffee Ice Cream
+```{r}
+instacart %>%
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>%
+  group_by(product_name, order_dow) %>%
+  summarize(mean_hour = mean(order_hour_of_day)) %>%
+  spread(key = order_dow, value = mean_hour) %>%
+  knitr::kable(digits = 2)
+```
+This table has shown the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week.
 
 ## Problem 2
 #### Import data and clean dataset
@@ -64,7 +117,9 @@ accel = read_csv("./data/accel_data.csv")%>%
                values_to = "activity") %>%
   mutate(minutes_from_midnight = as.numeric(minutes_from_midnight))
 accel %>%
-  ggplot(aes(x = minutes_from_midnight, y = activity, color= day)) + geom_smooth(se= FALSE)  + labs(x = "minutes from midnight", y="activity", title="Activity accounts every day by minutes")
+  ggplot(aes(x = minutes_from_midnight, y = activity, color= day)) +
+  geom_smooth(se= FALSE)  + 
+  labs(x = "minutes from midnight", y="activity", title="Activity accounts every day by minutes")
 ```
 According to the plot, we can observed that, the activity rose from about 250 minutes each day and became stable from 500 minutes to 100o minutes. On most days, the activity rose to climax at about 1250 minutes, especially on Fridays. The activity on Thursday can be different from others day that it reached its climax around 600 minutes of the day and was not active around 1250 minutes. 
 
