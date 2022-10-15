@@ -16,64 +16,6 @@ library(readxl)
 library(p8105.datasets)
 ```
 
-## Problem 1
-### Read in the data
-
-```{r}
-data("instacart")
-
-instacart = 
-  instacart %>% 
-  as_tibble(instacart)
-```
-
-
-```{r}
-instacart %>% 
-  count(aisle) %>% 
-  arrange(desc(n))
-```
-
-Next is a plot that shows the number of items ordered in each aisle. Here, aisles are ordered by ascending number of items.
-
-```{r}
-instacart %>% 
-  count(aisle) %>% 
-  filter(n > 10000) %>% 
-  mutate(aisle = fct_reorder(aisle, n)) %>% 
-  ggplot(aes(x = aisle, y = n)) + 
-  geom_point() + 
-  labs(title = "Number of items ordered in each aisle") +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1))
-
-```
-
-Our next table shows the three most popular items in aisles `baking ingredients`, `dog food care`, and `packaged vegetables fruits`, and includes the number of times each item is ordered in your table.
-
-```{r}
-instacart %>% 
-  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>%
-  group_by(aisle) %>% 
-  count(product_name) %>% 
-  mutate(rank = min_rank(desc(n))) %>% 
-  filter(rank < 4) %>% 
-  arrange(desc(n)) %>%
-  knitr::kable()
-```
-
-Finally is a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week. This table has been formatted in an untidy manner for human readers. Pink Lady Apples are generally purchased slightly earlier in the day than Coffee Ice Cream, with the exception of day 5.
-
-```{r}
-instacart %>%
-  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>%
-  group_by(product_name, order_dow) %>%
-  summarize(mean_hour = mean(order_hour_of_day)) %>%
-  spread(key = order_dow, value = mean_hour) %>%
-  knitr::kable(digits = 2)
-```
-
-
-
 
 ## Problem 2
 #### Import data and clean dataset
@@ -81,7 +23,7 @@ instacart %>%
 accel = read_csv("./data/accel_data.csv")
 accel
 ```
-
+The original dataset has 35 rows and 1443 columns. It has monitored 35 days and described the activity accouted for 1440 minutes every day. 
 ```{r}
 accel = read_csv("./data/accel_data.csv")%>%
    janitor::clean_names()%>%
@@ -93,10 +35,11 @@ accel = read_csv("./data/accel_data.csv")%>%
   mutate(weekend_vs_weekdays = ifelse(day == c("Sunday", "Saturday"), "weekend", "weekday"))
 accel
 ```
- 
+The cleaned dataset has the variables: week number, day id and the day to descibe a rough time. The variable "minutes_from_midnight" described the time of everyday in time and activity accounted for each minute was also listed. The days were distinguished by weekdays and weekends. 
 
+#### Aggregate activity across mintues of each day. 
 ```{r}
-accel = read_csv("./data/accel_data.csv")%>%
+accel_agg = read_csv("./data/accel_data.csv")%>%
    janitor::clean_names()%>%
   pivot_longer(activity_1 : activity_1440,
                names_to = "minutes_from_midnight",
@@ -104,11 +47,14 @@ accel = read_csv("./data/accel_data.csv")%>%
                values_to = "activity") %>%
   mutate(minutes_from_midnight = as.numeric(minutes_from_midnight)) %>%
   group_by(week, day)%>%
-  summarize(total = sum(activity))%>%
-  group_by(week, day, total)
-accel
+  summarize(total=sum(activity))%>%
+  mutate(day = c("Monday", "Tuesday", "Wedesday", "Thursday", "Friday", "Saturday", "Sunday"))%>%
+  pivot_wider(names_from = "day", values_from= "total")
+accel_agg
 ```
+According to the data reorganized, there were not obivious trend can be observed. The activity accounted was stable in Saturday and Sunday. In Wednesday, the activity was extremly low in the fourth and fifth week. 
 
+#### Plot 
 ```{r}
 accel = read_csv("./data/accel_data.csv")%>%
   janitor::clean_names()%>%
@@ -120,7 +66,7 @@ accel = read_csv("./data/accel_data.csv")%>%
 accel %>%
   ggplot(aes(x = minutes_from_midnight, y = activity, color= day)) + geom_smooth(se= FALSE)  + labs(x = "minutes from midnight", y="activity", title="Activity accounts every day by minutes")
 ```
-
+According to the plot, we can observed that, the activity rose from about 250 minutes each day and became stable from 500 minutes to 100o minutes. On most days, the activity rose to climax at about 1250 minutes, especially on Fridays. The activity on Thursday can be different from others day that it reached its climax around 600 minutes of the day and was not active around 1250 minutes. 
 
 ## Problem 3
 #### Import dataset
@@ -130,30 +76,42 @@ data("ny_noaa")
 ny_noaa = ny_noaa %>% as_tibble(ny_noaa)
 ny_noaa
 ```
-There are 2595176 columns in the dataset.
+There are 2595176 columns and 7 rows in the dataset.
 
-#### Clean the data
+#### Clean the data and summarize
 ```{r}
 noaa_tidy= ny_noaa %>% 
   separate(col= date, into =  c('year', 'month', 'day')) %>%
   mutate(prcp = prcp/10, tmax = as.numeric(tmax)/10, tmin= as.numeric(tmin)/10)
-noaa_tidy
+summary(noaa_tidy)
 ```
+The precipitaion's unit was changed into mm while the temperature's unit was changed to degrees C. 
+According to the summary of the cleaned data set. The precipitation, snowfall and snow depth were mostly observed as 0, indication that most of the places did not have snow in most months over years. 
 
-#### Figure 1
+
+#### Average max temperature in each stations
 ```{r}
 noaa_tidy %>%
+  filter(month == c("01","07"), !is.na(tmax))%>%
   group_by(id, year, month)%>%
-  filter(month == c("01", "07"))%>%
-  summarise(tmax_mean = mean(tmax, na.rm = TRUE)) %>%
-  ggplot(aes(x= year, y = tmax_mean)) + geom_point(alpha = 0.5)+ facet_grid(.~month) + labs(x= "Year", y= "Mean month", title="Average max temperature in January and in July")
+  summarize(tmax_avg= mean(tmax))%>%
+  ggplot(aes(x=year, y=tmax_avg))+ geom_point()+facet_grid(.~month) + labs(x="Year", y="Average Tmax", title="Average max temperature in January and in July in each station across years")
 ```
+According to the two panel plot, we can find that the average maximum temperature are very different between each stations, indicationg the gerography difference. The average maximum temperature range in January is larger than that in July. There are some outliers in both January and July. 
 
-#### Figure 2
+
+#### Plot of Tmax vs Tmin & Snow density over years.
 ```{r}
+tmax_vs_tmin = noaa_tidy %>%
+  drop_na(c(tmax, tmin)) %>%
+  ggplot(aes(x=tmin, y=tmax)) + geom_hex() + labs(x= "Tmax in Celsius", y= "Tmin in Celsius", title= "Tmax vs Tmin in each station across years")
 
+snow_distribution = noaa_tidy %>%
+  filter(snow>0, snow<100)%>%
+  ggplot(aes(x=snow, y=factor(year)))+ geom_density_ridges(scale = 1) + labs(x = "snow density", y="year", "Snow density by year")
+
+tmax_vs_tmin + snow_distribution
 ```
-
 
 
 
